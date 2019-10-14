@@ -4,10 +4,73 @@ output:
   html_document:
     keep_md: true
 ---
-
-
 ## Loading and preprocessing the data
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+After working through many chapters of Hadley Wickham's book "R for Data Science" (R4DS), I prefer working with the tidyverse libraries which I will first have to load. This will produce some warning messages which you might prefer not to see in a report (message = FALSE / warning = FALSE) but I have deliberately decided not to suppress them so in case you run this in your environment and there is any compatibility problem, you get informed immediately about the cause.
+
+```{r}
+library(tidyverse)
+```
+
+I then define some constants:
+
+```{r}
+input_filename = "activity.csv"
+zip_filename = "activity.zip"
+```
+
+And then I unzip the data (if not already done before) and read it into memory:
+
+```{r}
+if (!file.exists(input_filename)) { 
+    unzip(zip_filename) 
+}
+activity = read_csv(input_filename, col_types = cols(
+    steps = col_integer(),
+    date = col_date(),
+    interval = col_integer()
+  ))
+```
+
+A first analysis of the data shows that the steps variable has `r round(mean(is.na(activity$steps) == TRUE)*100)`% NA values while the other two columns have no NA values at all:
+
+```{r}
+sum(is.na(activity$steps) == TRUE)
+mean(is.na(activity$steps) == TRUE)
+sum(is.na(activity$date) == TRUE)
+sum(is.na(activity$interval) == TRUE)
+```
+
+My first guess was that the NA values resulted from a lack of activity recording during the night hours, so I checked their distribution over the intervals of the day:
+
+```{r}
+activity %>% filter(is.na(steps)) %>%
+    ggplot(aes(x=interval)) + 
+    geom_bar()
+```
+
+Hmmm... They seem to be distributed evenly over the course of the day, and each interval seems to contain exactly eight NA values. This rather suggests that certain days were not recorded at all:
+
+```{r}
+activity %>% filter(is.na(steps)) %>%
+    ggplot(aes(x=date)) + 
+    geom_bar()
+```
+Bingo! Let's find these dates:
+
+```{r}
+unique(filter(activity,is.na(steps))$date)
+```
+
+So it's 8 dates without recordings indeed! Let's just filter these dates out as the observations have no value:
+```{r}
+na_dates <- unique(filter(activity,is.na(steps))$date)
+activity <- filter(activity, !(date %in% na_dates))
+```
 
 
 ## What is mean total number of steps taken per day?
