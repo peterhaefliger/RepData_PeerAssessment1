@@ -47,7 +47,7 @@ sum(is.na(activity$interval) == TRUE)
 
 My first guess was that the NA values resulted from a lack of activity recording during the night hours, so I checked their distribution over the intervals of the day:
 
-```{r}
+```{r out.width = "70%", fig.align = "center"}
 activity %>% filter(is.na(steps)) %>%
     ggplot(aes(x=interval)) + 
     geom_bar()
@@ -55,7 +55,7 @@ activity %>% filter(is.na(steps)) %>%
 
 Hmmm... They seem to be distributed evenly over the course of the day, and each interval seems to contain exactly eight NA values. This rather suggests that certain days were not recorded at all:
 
-```{r}
+```{r out.width = "70%", fig.align = "center"}
 activity %>% filter(is.na(steps)) %>%
     ggplot(aes(x=date)) + 
     geom_bar()
@@ -74,11 +74,36 @@ activity <- filter(activity, !(date %in% na_dates))
 
 
 ## What is mean total number of steps taken per day?
+Histogram of the total number of steps taken per day, with vertical lines for the mean and median number of steps taken per day:
+```{r out.width = "70%", fig.align = "center"}
+daily_activity <- activity %>% group_by(date) %>% summarize(steps = sum(steps))
+ggplot(daily_activity, aes(x=steps)) + 
+  geom_histogram(binwidth=500) +
+  geom_vline(aes(xintercept=mean(steps)),
+            color="blue", size=1) +
+  geom_vline(aes(xintercept=median(steps)),
+            color="green", linetype="dashed", size=1)
+  
+```
 
-
+The mean and the median seem to equal:
+```{r}
+mean(daily_activity$steps)
+median(daily_activity$steps)
+```
+They are indeed almost equal.
 
 ## What is the average daily activity pattern?
+Time series of the average number of steps taken per interval:
 
+```{r out.width = "70%", fig.align = "center"}
+avg_activity_per_interval <- activity %>% group_by(interval) %>% summarize(steps = mean(steps))
+ggplot(avg_activity_per_interval, aes(x=interval, y=steps)) + 
+  geom_line() + 
+  scale_x_continuous(breaks=seq(0, 2300, 200))
+max(avg_activity_per_interval$steps)
+```
+The peak of a bit more than 200 steps within a five-minute interval is reached shortly after 8 in the morning.
 
 
 ## Imputing missing values
