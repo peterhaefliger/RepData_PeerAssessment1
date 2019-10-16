@@ -69,14 +69,14 @@ unique(filter(activity,is.na(steps))$date)
 So it's 8 dates without recordings indeed! Let's just filter these dates out as the observations have no value:
 ```{r}
 na_dates <- unique(filter(activity,is.na(steps))$date)
-activity <- filter(activity, !(date %in% na_dates))
+non_na_activity <- filter(activity, !(date %in% na_dates))
 ```
 
 
 ## What is mean total number of steps taken per day?
 Histogram of the total number of steps taken per day, with vertical lines for the mean and median number of steps taken per day:
 ```{r out.width = "70%", fig.align = "center"}
-daily_activity <- activity %>% group_by(date) %>% summarize(steps = sum(steps))
+daily_activity <- non_na_activity %>% group_by(date) %>% summarize(steps = sum(steps))
 ggplot(daily_activity, aes(x=steps)) + 
   geom_histogram(binwidth=500) +
   geom_vline(aes(xintercept=mean(steps)),
@@ -97,7 +97,7 @@ They are indeed almost equal.
 Time series of the average number of steps taken per interval:
 
 ```{r out.width = "70%", fig.align = "center"}
-avg_activity_per_interval <- activity %>% group_by(interval) %>% summarize(steps = mean(steps))
+avg_activity_per_interval <- non_na_activity %>% group_by(interval) %>% summarize(steps = mean(steps))
 ggplot(avg_activity_per_interval, aes(x=interval, y=steps)) + 
   geom_line() + 
   scale_x_continuous(breaks=seq(0, 2300, 200))
@@ -107,7 +107,39 @@ The peak of a bit more than 200 steps within a five-minute interval is reached s
 
 
 ## Imputing missing values
+As found out earlier, there are quite some NA values:
+```{r}
+sum(is.na(activity$steps) == TRUE)
+```
+And the NA values comprise 8 whole days:
+```{r}
+unique(filter(activity,is.na(steps))$date)
+```
+So to me the most obvious strategy for filling the missing values seems to be with the mean of all non-missing values of each five-minute interval of all the other days. 
 
+```{r}
+activity[activity$date %in% na_dates, ]$steps <- avg_activity_per_interval$steps
+```
+Re-creation of the histogram of the total number of steps taken per day, with vertical lines for the mean and median number of steps taken per day:
+```{r out.width = "70%", fig.align = "center"}
+daily_activity <- activity %>% group_by(date) %>% summarize(steps = sum(steps))
+ggplot(daily_activity, aes(x=steps)) + 
+  geom_histogram(binwidth=500) +
+  geom_vline(aes(xintercept=mean(steps)),
+            color="blue", size=1) +
+  geom_vline(aes(xintercept=median(steps)),
+            color="green", linetype="dashed", size=1)
+  
+```
 
+The obviours difference between this diagram and the one without the imputed values above is the peak at the mean/median: Where there were only 3 values before, with the additional 8 values we have placed at the mean, there are now 11 values in total, more than in any other bin.
+
+Again, the mean and the median seem to equal:
+```{r}
+mean(daily_activity$steps)
+median(daily_activity$steps)
+```
+And again, they are indeed almost equal.
+The mean is the same as before, which is to be expected as we have only added values to the data set which correspond exactly to the mean. And the median is exactly equal to the mean now which is also not so surprising, considering that we have added 8 values corresponding to mean somewhere in the middle ground where both the mean and the median are located.
 
 ## Are there differences in activity patterns between weekdays and weekends?
