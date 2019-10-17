@@ -4,7 +4,7 @@ output:
   html_document:
     keep_md: true
 ---
-## Loading and preprocessing the data
+This is my submission for the first assignment of the course "Reproducible Research". As I am communicating the results to fellow data science students who have already solved the same exercise in a similar way (and not to executives or customers or readers of a fancy magazine) I have not spent much time beautfying the plots with titles etc. The data analysis is straight-forward and rather explorative. I hope I have succeeded in my goal to clearly communicate all the steps I performed in my analysis so that my fellow students can understand, reproduce and grade them.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -14,9 +14,12 @@ After working through many chapters of Hadley Wickham's book "R for Data Science
 
 ```{r}
 library(tidyverse)
+library(chron)
 ```
 
-I then define some constants:
+## Loading and preprocessing the data
+
+First I define some constants:
 
 ```{r}
 input_filename = "activity.csv"
@@ -86,7 +89,7 @@ ggplot(daily_activity, aes(x=steps)) +
   
 ```
 
-The mean and the median seem to equal:
+The mean and the median seem to be equal:
 ```{r}
 mean(daily_activity$steps)
 median(daily_activity$steps)
@@ -129,17 +132,28 @@ ggplot(daily_activity, aes(x=steps)) +
             color="blue", size=1) +
   geom_vline(aes(xintercept=median(steps)),
             color="green", linetype="dashed", size=1)
-  
 ```
 
-The obviours difference between this diagram and the one without the imputed values above is the peak at the mean/median: Where there were only 3 values before, with the additional 8 values we have placed at the mean, there are now 11 values in total, more than in any other bin.
+The only difference between this diagram and the one without the imputed values above is the peak at the mean/median: Where there were only 3 values before, with the additional 8 values we have placed at the mean, there are now 11 values in total, more than in any other bin.
 
 Again, the mean and the median seem to equal:
 ```{r}
 mean(daily_activity$steps)
 median(daily_activity$steps)
 ```
-And again, they are indeed almost equal.
-The mean is the same as before, which is to be expected as we have only added values to the data set which correspond exactly to the mean. And the median is exactly equal to the mean now which is also not so surprising, considering that we have added 8 values corresponding to mean somewhere in the middle ground where both the mean and the median are located.
+The mean is the same as before, which is to be expected as we have only added values to the data set which correspond exactly to the mean. And the median is exactly equal to the mean now which is also not so surprising: With eight values corresponding to the mean, chances increase that the median is one of them. 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+First we create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day, and then we plot the time series of the average number of steps taken per interval again, this time separately for weekdays and weekends:
+```{r out.width = "70%", fig.align = "center"}
+activity <- mutate(activity, day = as.factor(ifelse(is.weekend(date), "weekend", "weekday")))
+
+avg_activity_per_interval <- activity %>%group_by(day, interval) %>% summarize(steps = mean(steps))
+ggplot(avg_activity_per_interval, aes(x=interval, y=steps)) + 
+  geom_line() + 
+  scale_x_continuous(breaks=seq(0, 2300, 200)) +
+  geom_hline(aes(yintercept=mean(steps)), color="blue", size=1) +
+  facet_wrap(~ day, ncol = 1)
+```
+
+The average number of steps per interval (blue horizontal line) is about the same for weekdays and weekends (around 40), but the distribution is different: Weekdays have a peak shortly after 8 in the morning (presumably when the test person commutes from home to work) and then little movement for the rest of the day, while during weekends, the steps are more spread out over the whole day.
